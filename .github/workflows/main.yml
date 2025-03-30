@@ -1,4 +1,4 @@
-name: Use Release Analysis
+name: Use Release Analysi
 
 on:
   push:
