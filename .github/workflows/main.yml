@@ -8,7 +8,9 @@ on:
 jobs:
   call_release_analysis:
     uses: Moustafa-Yousef/ReleaseManagement/.github/workflows/release_analysis.yml@main  # ✅ استدعاء الـ workflow الأساسي
+    with:
+      target_repo: "your-org/your-repo"  # ✅ اسم الريبو المستدعي كاملًا
     permissions:
       contents: write
     secrets:
-      PAT: ${{ secrets.PAT }}  # ✅ مرر الـ token لاستخدامه في جلب الريبو الأساسي
+      PAT: ${{ secrets.PAT }}  # ✅ مرر الـ token لاستخدامه في جلب الريبو الأساسي والمستدعي
