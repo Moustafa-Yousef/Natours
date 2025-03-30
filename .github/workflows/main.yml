@@ -7,6 +7,6 @@ on:
 
 jobs:
   call_release_analysis:
-    uses: Moustafa-Yousef/ReleaseManagement/.github/workflows/release_analysis.yml@main  # ✅ استدعاء الـ workflow الأساسي
+    uses: Moustafa-Yousef/ReleaseManagement/.github/workflows/release_analysis.yml  # ✅ استدعاء الـ workflow الأساسي
     permissions:
       contents: write
