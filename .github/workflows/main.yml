@@ -1,4 +1,4 @@
-name: Use Release Analys
+name: Use Release Analysis
 
 on:
   push:
@@ -6,5 +6,9 @@ on:
       - main
 
 jobs:
-  call-release-analysis:
-    uses: Moustafa-Yousef/ReleaseMAnagement/.github/workflows/release_analysis.yml@main
+  call_reusable_workflow:
+    uses: Moustafa-Yousef/ReleaseManagement/.github/workflows/release_analysis.yml@main  # 👈 استدعاء الأكشن من الريبو الأساسي
+    with:
+      branch: "main"
+    secrets:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
