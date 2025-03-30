@@ -1,0 +1,10 @@
+name: Use Release Analysis
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  call-release-analysis:
+    uses: Moustafa-Yousef/ReleaseMAnagement/.github/workflows/release_analysis.yml@main
