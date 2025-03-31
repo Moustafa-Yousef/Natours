@@ -1,18 +1,39 @@
-name: Call Release Analysis
+name: Release Analysis
 
-on:
+on: 
   push:
+    branches:
+      - main
+  pull_request:
     branches:
       - main
 
 jobs:
-  run_docker:
+  analyze_release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # صلاحية لتعديل الريبو ورفع الـ tags
     steps:
-      - name: Pull Docker Image
-        run: docker pull mostfarwag/release:latest
-      
-      - name: Run Docker Container
-        run: docker run --rm mostfarwag/release:latest
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # عشان نجيب تاريخ الـ Git كامل بما فيه الـ tags
 
+      - name: Run Docker Image
+        run: |
+          docker run -d --name release-container \
+            -v $(pwd):/app \
+            -p 5000:5000 \
+             mostfarwag/release:latest \
+            bash -c "python api.py & sleep 5 && dart run /app/release_manager.dart"
 
+      - name: Wait for API and Script to Complete
+        run: |
+          docker logs -f release-container
+          docker wait release-container
+
+      - name: Stop Docker Container
+        if: always()
+        run: |
+          docker stop release-container || true
+          docker rm release-container || true
