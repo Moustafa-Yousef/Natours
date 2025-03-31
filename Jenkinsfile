@@ -4,7 +4,7 @@ pipeline {
     stages {
         stage('Test Webhook') {
             steps {
-                echo 'Webhook Test Successful'
+                echo 'Webhook Test Succe ssful'
             }
         }
     }
