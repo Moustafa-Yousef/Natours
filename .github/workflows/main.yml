@@ -13,5 +13,6 @@ jobs:
         run: docker pull mostfarwag/release-analysis:latest
       
       - name: Run Docker Container
-        run: docker run -it --rm mostfarwag/release-analysis:latest
+        run: docker run --rm mostfarwag/release-analysis:latest
+
 
