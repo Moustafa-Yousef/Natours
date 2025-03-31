@@ -10,9 +10,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Pull Docker Image
-        run: docker pull mostfarwag/release-analysis:latest
+        run: docker pull mostfarwag/release:latest
       
       - name: Run Docker Container
-        run: docker run --rm mostfarwag/release-analysis:latest
+        run: docker run --rm mostfarwag/release:latest
 
 
