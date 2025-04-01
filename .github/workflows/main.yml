@@ -17,7 +17,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # عشان نجيب تاريخ الـ Git كامل بما فيه الـ tags
+          fetch-depth: 0  # عشان نجيب تاريخ الـ Git كامل بما فيه الـ tag
 
       - name: Run Docker Image
         run: |
