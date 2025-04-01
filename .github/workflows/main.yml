@@ -21,7 +21,7 @@ jobs:
 
       - name: Build and Run Docker Image
         run: |
-          docker build -t mostfarwag/release:2 .
+          docker build -t mostfarwag/release:3 .
           docker run -d --name release-container -e REPO_URL=https://github.com/${{ github.repository }}.git mostfarwag/release:2
           
       - name: Wait for API and Script to Complete
