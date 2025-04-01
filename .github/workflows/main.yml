@@ -1,9 +1,6 @@
 name: Release Analysis
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
     branches:
       - main
@@ -15,7 +12,7 @@ jobs:
   analyze-release:
     runs-on: ubuntu-latest
     container:
-      image: mostfarwag/release:3  # غيرها باسم الـ image بتاعك
+      image: mostfarwag/release:3  # الـ image بتاعتك
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -23,14 +20,22 @@ jobs:
           fetch-depth: 0
 
       - name: Run Release Analyzer
+        id: run-analyzer  # بنسمي الـ step علشان نستخدم الـ output
         env:
           REPO_URL: ${{ github.repositoryUrl }}
         run: |
           # الـ container بيشتغل تلقائيًا بالـ CMD بتاع الـ Dockerfile
-          # بنستنى الـ container يكمل ونجيب الـ output
           sleep 10  # نستنى الـ script يكمل
+          NEW_TAG=$(cat /app/new_tag.txt)
+          echo "NEW_TAG=$NEW_TAG" >> $GITHUB_OUTPUT
           cat /app/new_tag.txt || echo "No new tag generated"
+
+      - name: Create and Push Git Tag
+        run: |
+          NEW_TAG=${{ steps.run-analyzer.outputs.NEW_TAG }}
+          git tag $NEW_TAG
+          git push origin $NEW_TAG || echo "Error: Failed to push tag"
 
       - name: Debug Output
         run: |
-          echo "Workflow completed. Check the logs above for the new tag or errors."
+          echo "Workflow completed. New tag: ${{ steps.run-analyzer.outputs.NEW_TAG }}"
