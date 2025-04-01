@@ -14,23 +14,33 @@ permissions:
 jobs:
   analyze-release:
     runs-on: ubuntu-latest
-    container:
-      image: mostfarwag/release:3
-    steps:
+    steps:  # شيلنا الـ container وهنستخدم docker run
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      - name: Run Release Analyzer
+      - name: Run Docker Image and Capture Output
         id: run-analyzer
         env:
           REPO_URL: ${{ github.repositoryUrl }}
         run: |
-          sleep 10
-          NEW_TAG=$(cat /app/new_tag.txt 2>/dev/null || echo "No new tag generated")
+          # نشغل الـ image ونحفظ الـ output كله
+          docker run --name release-container -e REPO_URL=$REPO_URL mostfarwag/release:3 > output.log 2>&1
+          # نجرب نجيب الـ NEW_TAG من الملف
+          docker cp release-container:/app/new_tag.txt ./new_tag.txt || echo "Failed to copy new_tag.txt"
+          NEW_TAG=$(cat ./new_tag.txt 2>/dev/null || echo "")
+          # لو الملف مش موجود، نحاول نجيب الـ tag من الـ output
+          if [ -z "$NEW_TAG" ]; then
+            NEW_TAG=$(grep "New tag created and pushed" output.log | awk '{print $NF}' || echo "No new tag generated")
+          fi
+          if [ -z "$NEW_TAG" ] || [ "$NEW_TAG" = "No new tag generated" ]; then
+            echo "Error: Could not generate NEW_TAG"
+            cat output.log  # نطبع الـ logs كلها للتشخيص
+            exit 1
+          fi
           echo "NEW_TAG=$NEW_TAG" >> $GITHUB_OUTPUT
-          cat /app/new_tag.txt || echo "No new tag generated"
+          echo "Captured NEW_TAG: $NEW_TAG"
 
       - name: Create and Push Git Tag
         run: |
