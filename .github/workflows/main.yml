@@ -1,6 +1,6 @@
 name: Release Analysis
 
-on:
+on: 
   push:
     branches:
       - main
@@ -19,32 +19,17 @@ jobs:
         with:
           fetch-depth: 0  # عشان نجيب تاريخ الـ Git كامل بما فيه الـ tags
 
-      - name: Build and Run Docker Image
-        run: docker run -d  -p 5000:5000 --name release-container  mostfarwag/release:3
-      run: |
+      - name: Run Docker Image
+        run: |
           docker run -d --name release-container \
-            -v $(pwd):/app \
             -p 5000:5000 \
+            -e REPO_URL=https://github.com/${{ github.repository }}.git \
              mostfarwag/release:3 \
-            -e REPO_URL=https://github.com/${{ github.repository }}.git
-      - name: Wait for API to Start
+             
+      - name: Wait for API and Script to Complete
         run: |
-          # انتظار حتى يبدأ الـ API في الاستماع على المنفذ 5000
-          until docker exec release-container bash -c "nc -z localhost 5000"; do
-            echo "Waiting for API to start..."
-            sleep 1
-          done
-          echo "API is ready!"
-
-      - name: Retrieve the new tag from the container
-        run: |
-          NEW_TAG=$(docker exec release-container bash -c "cat /app/new_tag.txt")
-          echo "New Tag: $NEW_TAG"
-
-      - name: Create and Push Tag
-        run: |
-          git tag $NEW_TAG
-          git push origin $NEW_TAG
+          docker logs -f release-container
+          docker wait release-container
 
       - name: Stop Docker Container
         if: always()
