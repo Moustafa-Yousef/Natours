@@ -27,13 +27,13 @@ jobs:
             mostfarwag/release:4
 
       - name: Wait for API and Script to Complete
-        id: wait-for-container  # نضيف id عشان نستخدم outputs
+        id: wait-for-container
         run: |
           docker logs -f release-container > container_logs.txt
           docker wait release-container
           # استخراج التاج الجديد من الـ logs
           NEW_TAG=$(grep "New tag created and pushed" container_logs.txt | awk '{print $NF}')
-          echo "NEW_TAG=$NEW_TAG" >> $GITHUB_ENV  # حفظ التاج كمتغير بيئة
+          echo "NEW_TAG=$NEW_TAG" >> $GITHUB_ENV
 
       - name: Stop Docker Container
         if: always()
@@ -41,14 +41,26 @@ jobs:
           docker stop release-container || true
           docker rm release-container || true
 
-      - name: Create and Push New Custom Tag
+      - name: Get Previous and Current Version
+        id: get_version
         run: |
-          # جلب التاج اللي اتولد من الـ Docker
+          echo "OLD_VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo '0.0.0')" >> $GITHUB_ENV
+          echo "NEW_VERSION=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
+      - name: Create and Push New Tag Directly
+        run: |
+          # جلب التاج اللي اتولد من الـ Docker كـ OLD_VERSION
           OLD_VERSION=${{ env.NEW_TAG }}
-          # إنشاء تاج جديد بناءً على الهاش المختصر للكوميت الحالي
-          NEW_VERSION=$(git rev-parse --short HEAD)
+          # التاج الجديد بناءً على الهاش المختصر
+          NEW_VERSION=${{ env.NEW_VERSION }}
           echo "Old tag from Docker: $OLD_VERSION"
           echo "New custom tag: $NEW_VERSION"
-          # إنشاء التاج الجديد ورفعه
-          git tag "$NEW_VERSION" -m "New custom tag based on commit hash"
+          # إنشاء التاج الجديد ورفعه دايركت
+          git tag "$NEW_VERSION" -m "New tag based on commit hash"
           git push origin "$NEW_VERSION"
+
+      - name: Call Another Workflow
+        uses: ./.github/workflows/another-workflow.yml  # استدعاء الـ workflow التانية
+        with:
+          old_version: ${{ env.OLD_VERSION }}
+          new_version: ${{ env.NEW_VERSION }}
