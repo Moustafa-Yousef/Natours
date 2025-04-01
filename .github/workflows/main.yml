@@ -22,10 +22,14 @@ jobs:
       - name: Build and Run Docker Image
         run: docker run -d --name release-container -e REPO_URL=https://github.com/${{ github.repository }}.git mostfarwag/release:3
           
-      - name: Wait for API and Script to Complete
+      - name: Wait for API to Start
         run: |
-          # الانتظار حتى تكمل الحاوية العمليات داخلها
-          docker logs -f release-container
+          # انتظار حتى يبدأ الـ API في الاستماع على المنفذ 5000
+          until docker exec release-container bash -c "nc -z localhost 5000"; do
+            echo "Waiting for API to start..."
+            sleep 1
+          done
+          echo "API is ready!"
 
       - name: Retrieve the new tag from the container
         run: |
