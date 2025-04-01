@@ -12,7 +12,7 @@ jobs:
   analyze_release:
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # صلاحية لتعديل الريبو ورفع الـ tags
+      contents: write  # صلاحية لتعديل الريبو ورفع الـ tags 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
