@@ -25,16 +25,9 @@ jobs:
             -p 5000:5000 \
             -e REPO_URL=https://github.com/${{ github.repository }}.git \
             mostfarwag/release:3
-
-      - name: Wait for API and Script to Complete
-        run: |
-          sleep 30  # الانتظار قليلاً لضمان تشغيل الـ API والـ Dart script
-          docker logs -f release-container
-          docker wait release-container
-
       - name: Check if Docker container is running
         run: |
-          docker ps -a
+          docker ps
           
       - name: Get New Tag from Docker Container
         run: |
