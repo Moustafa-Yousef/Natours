@@ -1,6 +1,6 @@
 name: Release Analysis
 
-on:
+on: 
   push:
     branches:
       - main
@@ -19,35 +19,17 @@ jobs:
         with:
           fetch-depth: 0  # عشان نجيب تاريخ الـ Git كامل بما فيه الـ tags
 
-      - name: Get Previous and Current Version
-        id: get_version
-        run: |
-          echo "OLD_VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo '0.0.0')" >> $GITHUB_ENV
-          echo "NEW_VERSION=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
-
       - name: Run Docker Image
         run: |
           docker run -d --name release-container \
             -p 5000:5000 \
             -e REPO_URL=https://github.com/${{ github.repository }}.git \
-            mostfarwag/release:3 
-            git tag ${{ env.NEW_TAG }}
-            git push origin ${{ env.NEW_TAG }}  
-
+             mostfarwag/release:3 \
+             
       - name: Wait for API and Script to Complete
         run: |
           docker logs -f release-container
           docker wait release-container
-
-      - name: Retrieve the new tag from the container
-        run: |
-          NEW_TAG=$(docker exec release-container cat /app/new_tag.txt)
-          echo "NEW_TAG=$NEW_TAG" >> $GITHUB_ENV
-
-      - name: Create and Push Tag
-        run: |
-          git tag ${{ env.NEW_TAG }}
-          git push origin ${{ env.NEW_TAG }}
 
       - name: Stop Docker Container
         if: always()
