@@ -21,7 +21,7 @@ jobs:
 
       - name: Run Docker Image
         run: |
-          docker run -d --name release-container \
+          docker run -it --rm --name release-container \
             -p 5000:5000 \
             -e REPO_URL=https://github.com/${{ github.repository }}.git \
             mostfarwag/release:3
