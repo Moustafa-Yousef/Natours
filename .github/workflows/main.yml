@@ -30,7 +30,10 @@ jobs:
         run: |
           docker logs -f release-container
           docker wait release-container
-
+          NEW_TAG=$(docker exec release-container cat /app/new_tag.txt)
+          echo "New Tag: $NEW_TAG"
+          git tag $NEW_TAG
+          git push origin $NEW_TAG
       - name: Stop Docker Container
         if: always()
         run: |
