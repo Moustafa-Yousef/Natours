@@ -20,7 +20,7 @@ jobs:
           fetch-depth: 0  # عشان نجيب تاريخ الـ Git كامل بما فيه الـ tags
 
       - name: Build and Run Docker Image
-        run: docker run -d --name release-container -e REPO_URL=https://github.com/${{ github.repository }}.git mostfarwag/release:3
+        run: docker run -d  -p 5000:5000 --name release-container -e REPO_URL=https://github.com/${{ github.repository }}.git mostfarwag/release:3
           
       - name: Wait for API to Start
         run: |
