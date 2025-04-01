@@ -12,14 +12,14 @@ jobs:
   analyze_release:
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # صلاحية لتعديل الريبو ورفع الـ ags
+      contents: write  # صلاحية لتعديل الريبو ورفع الـ tags
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # عشان نجيب تاريخ الـ Git كامل بما فيه الـ tag
+          fetch-depth: 0  # عشان نجيب تاريخ الـ Git كامل بما فيه الـ tags
 
-      - name: Build and Run Docker Image
+      - name: Run Docker Image
         run: |
           docker run -d --name release-container \
             -p 5000:5000 \
@@ -29,24 +29,17 @@ jobs:
       - name: Wait for API and Script to Complete
         id: wait-for-container  # نضيف id عشان نستخدم outputs
         run: |
-          # انتظار الـ logs لمعرفة متى ينتهي التحليل
-          docker logs -f release-container > container_logs.txt &
+          docker logs -f release-container > container_logs.txt
           docker wait release-container
-          
           # استخراج التاج الجديد من الـ logs
           NEW_TAG=$(grep "New tag created and pushed" container_logs.txt | awk '{print $NF}')
-          echo "NEW_TAG=$NEW_TAG" >> $GITHUB_ENV  # حفظ  التاج كمتغير بيئة
-
-      - name: Run Dart Script Inside Docker Container
-        run: |
-          docker exec release-container dart run release_manager.dart ${{ env.NEW_TAG }}
+          echo "NEW_TAG=$NEW_TAG" >> $GITHUB_ENV  # حفظ التاج كمتغير بيئة
 
       - name: Stop Docker Container
         if: always()
         run: |
           docker stop release-container || true
           docker rm release-container || true
-
       - name: Configure Git identity
         run: |
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
