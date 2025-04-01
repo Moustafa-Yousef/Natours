@@ -24,15 +24,25 @@ jobs:
           docker run -d --name release-container \
             -p 5000:5000 \
             -e REPO_URL=https://github.com/${{ github.repository }}.git \
-             mostfarwag/release:3 \
-             
+            mostfarwag/release:3
+
       - name: Wait for API and Script to Complete
         run: |
+          sleep 10  # الانتظار قليلاً لضمان تشغيل الـ API والـ Dart script
           docker logs -f release-container
+          docker wait release-container
+
+      - name: Get New Tag from Docker Container
+        run: |
           NEW_TAG=$(docker exec release-container cat /app/new_tag.txt)
           echo "New Tag: $NEW_TAG"
+          echo "NEW_TAG=$NEW_TAG" >> $GITHUB_ENV
+
+      - name: Create and Push Tag
+        run: |
           git tag $NEW_TAG
           git push origin $NEW_TAG
+
       - name: Stop Docker Container
         if: always()
         run: |
