@@ -12,20 +12,40 @@ jobs:
   analyze_release:
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # صلاحية لتعديل الريبو ورفع الـ tags
+      contents: write  # السماح بتعديل الريبو ورفع الـ tags
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # عشان نجيب تاريخ الـ Git كامل بما فيه الـ tags
+          fetch-depth: 0  # جلب تاريخ Git بالكامل بما في ذلك التاجز
+
+      - name: Pull latest Docker image (optional)
+        run: docker pull mostfarwag/release:3
 
       - name: Run Docker Image
         run: |
           docker run -d --name release-container \
             -p 5000:5000 \
             -e REPO_URL=https://github.com/${{ github.repository }}.git \
-             mostfarwag/release:3 \
-             
+            mostfarwag/release:3
+
+      - name: Wait for API and Script to Complete
+        run: |
+          docker logs -f release-container
+          docker wait release-container
+
+      - name: Retrieve new tag from container
+        run: |
+          NEW_TAG=$(docker exec release-container bash -c "cat /app/new_tag.txt")
+          echo "New Tag: $NEW_TAG"
+          echo "NEW_TAG=$NEW_TAG" >> $GITHUB_ENV
+
+      - name: Create and Push Tag
+        run: |
+          git tag $NEW_TAG
+          git push origin $NEW_TAG
+
       - name: Wait for API and Script to Complete
         run: |
           docker logs -f release-container
