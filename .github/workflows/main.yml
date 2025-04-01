@@ -12,18 +12,22 @@ jobs:
   analyze_release:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: write  # صلاحية لتعديل الريبو ورفع الـ tags
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0
+          fetch-depth: 0  # عشان نجيب تاريخ الـ Git كامل بما فيه الـ tags
+      - name: Configure Git identity
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "GitHub Actions"
 
       - name: Run Docker Image
         run: |
-          docker run -d --name release-container \
+          docker run -e REPO_URL=https://github.com/${{ github.repository }}.git \
+            -d --name release-container \
             -p 5000:5000 \
-            -e REPO_URL=https://github.com/${{ github.repository }}.git \
             mostfarwag/release:4
 
       - name: Wait for API and Script to Complete
@@ -31,17 +35,9 @@ jobs:
         run: |
           docker logs -f release-container > container_logs.txt
           docker wait release-container
-          # عرض السجلات للتحقق
-          cat container_logs.txt
-          # استخراج التاج الجديد
+          # استخراج التاج الجديد من الـ logs
           NEW_TAG=$(grep "New tag created and pushed" container_logs.txt | awk '{print $NF}')
           echo "NEW_TAG=$NEW_TAG" >> $GITHUB_ENV
-
-      - name: Check if NEW_TAG is empty
-        run: |
-          if [ -z "${{ env.NEW_TAG }}" ]; then
-            echo "Error: NEW_TAG is empty. Exiting." && exit 1
-          fi
 
       - name: Stop Docker Container
         if: always()
@@ -49,11 +45,22 @@ jobs:
           docker stop release-container || true
           docker rm release-container || true
 
-      - name: Configure Git identity
+      - name: Get Previous and Current Version
+        id: get_version
         run: |
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git config --global user.name "GitHub Actions"
+          echo "OLD_VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo '0.0.0')" >> $GITHUB_ENV
+          echo "NEW_VERSION=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 
       - name: Create and Push New Tag Directly
         run: |
-          echo "Old tag from Docker: $
+          # جلب التاج اللي اتولد من الـ Docker كـ OLD_VERSION
+          OLD_VERSION=${{ env.NEW_TAG }}
+          # التاج الجديد بناءً على الهاش المختصر
+          NEW_VERSION=${{ env.NEW_VERSION }}
+          echo "Old tag from Docker: $OLD_VERSION"
+          echo "New custom tag: $NEW_VERSION"
+          # إنشاء التاج الجديد ورفعه دايركت
+          git tag "$NEW_VERSION" -m "New tag based on commit hash"
+          git push origin "$NEW_VERSION"
+
+    
