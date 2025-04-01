@@ -28,12 +28,17 @@ jobs:
 
       - name: Wait for API and Script to Complete
         run: |
-          sleep 10  # الانتظار قليلاً لضمان تشغيل الـ API والـ Dart script
+          sleep 30  # الانتظار قليلاً لضمان تشغيل الـ API والـ Dart script
           docker logs -f release-container
           docker wait release-container
 
+      - name: Check if Docker container is running
+        run: |
+          docker ps -a
+          
       - name: Get New Tag from Docker Container
         run: |
+          docker exec release-container cat /app/new_tag.txt || echo "Error: container is not running"
           NEW_TAG=$(docker exec release-container cat /app/new_tag.txt)
           echo "New Tag: $NEW_TAG"
           echo "NEW_TAG=$NEW_TAG" >> $GITHUB_ENV
