@@ -12,12 +12,12 @@ jobs:
   analyze_release:
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # صلاحية لتعديل الريبو ورفع الـ tags
+      contents: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # عشان نجيب تاريخ الـ Git كامل بما فيه الـ tags
+          fetch-depth: 0
 
       - name: Run Docker Image
         run: |
@@ -27,19 +27,28 @@ jobs:
             mostfarwag/release:4
 
       - name: Wait for API and Script to Complete
-        id: wait-for-container  # نضيف id عشان نستخدم outputs
+        id: wait-for-container
         run: |
           docker logs -f release-container > container_logs.txt
           docker wait release-container
-          # استخراج التاج الجديد من الـ logs
+          # عرض السجلات للتحقق
+          cat container_logs.txt
+          # استخراج التاج الجديد
           NEW_TAG=$(grep "New tag created and pushed" container_logs.txt | awk '{print $NF}')
-          echo "NEW_TAG=$NEW_TAG" >> $GITHUB_ENV  # حفظ التاج كمتغير بيئة
+          echo "NEW_TAG=$NEW_TAG" >> $GITHUB_ENV
+
+      - name: Check if NEW_TAG is empty
+        run: |
+          if [ -z "${{ env.NEW_TAG }}" ]; then
+            echo "Error: NEW_TAG is empty. Exiting." && exit 1
+          fi
 
       - name: Stop Docker Container
         if: always()
         run: |
           docker stop release-container || true
           docker rm release-container || true
+
       - name: Configure Git identity
         run: |
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
@@ -47,6 +56,4 @@ jobs:
 
       - name: Create and Push New Tag Directly
         run: |
-          echo "Old tag from Docker: ${{ env.NEW_TAG }}"
-          git tag "${{ env.NEW_TAG }}" -m "New tag from release analysis"
-          git push origin "${{ env.NEW_TAG }}"
+          echo "Old tag from Docker: $
