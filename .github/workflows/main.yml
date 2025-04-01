@@ -19,7 +19,7 @@ jobs:
         with:
           fetch-depth: 0  # عشان نجيب تاريخ الـ Git كامل بما فيه الـ tag
 
-      - name: Run Docker Image
+      - name: Build and Run Docker Image
         run: |
           docker run -d --name release-container \
             -p 5000:5000 \
@@ -29,17 +29,24 @@ jobs:
       - name: Wait for API and Script to Complete
         id: wait-for-container  # نضيف id عشان نستخدم outputs
         run: |
-          docker logs -f release-container > container_logs.txt
+          # انتظار الـ logs لمعرفة متى ينتهي التحليل
+          docker logs -f release-container > container_logs.txt &
           docker wait release-container
+          
           # استخراج التاج الجديد من الـ logs
           NEW_TAG=$(grep "New tag created and pushed" container_logs.txt | awk '{print $NF}')
           echo "NEW_TAG=$NEW_TAG" >> $GITHUB_ENV  # حفظ التاج كمتغير بيئة
+
+      - name: Run Dart Script Inside Docker Container
+        run: |
+          docker exec release-container dart run release_manager.dart ${{ env.NEW_TAG }}
 
       - name: Stop Docker Container
         if: always()
         run: |
           docker stop release-container || true
           docker rm release-container || true
+
       - name: Configure Git identity
         run: |
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
@@ -50,4 +57,3 @@ jobs:
           echo "Old tag from Docker: ${{ env.NEW_TAG }}"
           git tag "${{ env.NEW_TAG }}" -m "New tag from release analysis"
           git push origin "${{ env.NEW_TAG }}"
-
