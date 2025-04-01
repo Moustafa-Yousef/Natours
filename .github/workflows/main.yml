@@ -20,12 +20,28 @@ jobs:
           fetch-depth: 0  # عشان نجيب تاريخ الـ Git كامل بما فيه الـ tags
 
       - name: Run Docker Image
-        run: docker run  -d --name release-container -e REPO_URL=https://github.com/${{ github.repository }}.git mostfarwag/release:2
+        run: |
+          docker run -d --name release-container \
+            -e REPO_URL=https://github.com/${{ github.repository }}.git \
+            mostfarwag/release:2
 
       - name: Wait for API and Script to Complete
         run: |
           docker logs -f release-container
-          
+
+      - name: Get Tag After Analysis
+        id: get_tag
+        run: |
+          TAG=$(docker exec release-container bash -c "cat /app/new_tag.txt")
+          echo "New Tag: $TAG"
+          echo "new_tag=$TAG" >> $GITHUB_ENV  # تعيين التاج كمتغير بيئة ليتم استخدامه في الخطوات التالية
+
+      - name: Push New Tag to Repository
+        run: |
+          git config --global user.email "ci@example.com"
+          git config --global user.name "CI Bot"
+          git tag ${{ env.new_tag }}
+          git push origin ${{ env.new_tag }}
 
       - name: Stop Docker Container
         if: always()
