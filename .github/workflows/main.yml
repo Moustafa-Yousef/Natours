@@ -27,11 +27,12 @@ jobs:
         env:
           REPO_URL: ${{ github.repositoryUrl }}
         run: |
+          docker ps
           sleep 10
           NEW_TAG=$(cat /app/new_tag.txt 2>/dev/null || echo "No new tag generated")
           echo "NEW_TAG=$NEW_TAG" >> $GITHUB_OUTPUT
           cat /app/new_tag.txt || echo "No new tag generated"
-          docker ps
+          
 
       - name: Create and Push Git Tag
         run: |
