@@ -1,6 +1,6 @@
 name: Release Analysis
 
-on:
+on: 
   push:
     branches:
       - main
@@ -8,42 +8,31 @@ on:
     branches:
       - main
 
-permissions:
-  contents: write
-
 jobs:
-  analyze-release:
+  analyze_release:
     runs-on: ubuntu-latest
-    container:
-      image: mostfarwag/release:3
+    permissions:
+      contents: write  # صلاحية لتعديل الريبو ورفع الـ tags
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0
+          fetch-depth: 0  # عشان نجيب تاريخ الـ Git كامل بما فيه الـ tags
 
-      - name: Run Release Analyzer
-        id: run-analyzer
-        env:
-          REPO_URL: ${{ github.repositoryUrl }}
+      - name: Run Docker Image
         run: |
-          docker ps
-          sleep 10
-          NEW_TAG=$(cat /app/new_tag.txt 2>/dev/null || echo "No new tag generated")
-          echo "NEW_TAG=$NEW_TAG" >> $GITHUB_OUTPUT
-          cat /app/new_tag.txt || echo "No new tag generated"
-          
+          docker run -d --name release-container \
+            -p 5000:5000 \
+            -e REPO_URL=https://github.com/${{ github.repository }}.git \
+             mostfarwag/release:3 \
+             
+      - name: Wait for API and Script to Complete
+        run: |
+          docker logs -f release-container
+          docker wait release-container
 
-      - name: Create and Push Git Tag
+      - name: Stop Docker Container
+        if: always()
         run: |
-          NEW_TAG="${{ steps.run-analyzer.outputs.NEW_TAG }}"
-          if [ "$NEW_TAG" != "No new tag generated" ]; then
-            git tag "$NEW_TAG"
-            git push origin "$NEW_TAG" || echo "Error: Failed to push tag"
-          else
-            echo "Skipping tag creation: No valid NEW_TAG generated"
-          fi
-
-      - name: Debug Output
-        run: |
-          echo "Workflow completed. New tag: ${{ steps.run-analyzer.outputs.NEW_TAG }}"
+          docker stop release-container || true
+          docker rm release-container || true
