@@ -35,7 +35,7 @@ jobs:
           
           # استخراج التاج الجديد من الـ logs
           NEW_TAG=$(grep "New tag created and pushed" container_logs.txt | awk '{print $NF}')
-          echo "NEW_TAG=$NEW_TAG" >> $GITHUB_ENV  # حفظ التاج كمتغير بيئة
+          echo "NEW_TAG=$NEW_TAG" >> $GITHUB_ENV  # حفظ  التاج كمتغير بيئة
 
       - name: Run Dart Script Inside Docker Container
         run: |
