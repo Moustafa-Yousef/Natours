@@ -26,7 +26,7 @@ jobs:
             -v $(pwd):/app \
             -p 5000:5000 \
              mostfarwag/release:3 \
-            bash -c "python api.py & sleep 5 && dart run /app/release_manager.dart && REPO_URL=https://github.com/${{ github.repository }}.git"
+            -e REPO_URL=https://github.com/${{ github.repository }}.git
       - name: Wait for API to Start
         run: |
           # انتظار حتى يبدأ الـ API في الاستماع على المنفذ 5000
