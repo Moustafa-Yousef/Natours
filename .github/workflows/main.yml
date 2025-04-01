@@ -24,15 +24,31 @@ jobs:
           docker run -d --name release-container \
             -p 5000:5000 \
             -e REPO_URL=https://github.com/${{ github.repository }}.git \
-             mostfarwag/release:4 \
-             
+            mostfarwag/release:4
+
       - name: Wait for API and Script to Complete
+        id: wait-for-container  # نضيف id عشان نستخدم outputs
         run: |
-          docker logs -f release-container
+          docker logs -f release-container > container_logs.txt
           docker wait release-container
+          # استخراج التاج الجديد من الـ logs
+          NEW_TAG=$(grep "New tag created and pushed" container_logs.txt | awk '{print $NF}')
+          echo "NEW_TAG=$NEW_TAG" >> $GITHUB_ENV  # حفظ التاج كمتغير بيئة
 
       - name: Stop Docker Container
         if: always()
         run: |
           docker stop release-container || true
           docker rm release-container || true
+
+      - name: Create and Push New Custom Tag
+        run: |
+          # جلب التاج اللي اتولد من الـ Docker
+          OLD_VERSION=${{ env.NEW_TAG }}
+          # إنشاء تاج جديد بناءً على الهاش المختصر للكوميت الحالي
+          NEW_VERSION=$(git rev-parse --short HEAD)
+          echo "Old tag from Docker: $OLD_VERSION"
+          echo "New custom tag: $NEW_VERSION"
+          # إنشاء التاج الجديد ورفعه
+          git tag "$NEW_VERSION" -m "New custom tag based on commit hash"
+          git push origin "$NEW_VERSION"
