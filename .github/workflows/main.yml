@@ -24,7 +24,7 @@ jobs:
           docker run -d --name release-container \
             -p 5000:5000 \
             -e REPO_URL=https://github.com/${{ github.repository }}.git \
-             mostfarwag/release:2 \
+             mostfarwag/release:4 \
              
       - name: Wait for API and Script to Complete
         run: |
