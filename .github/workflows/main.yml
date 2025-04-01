@@ -24,15 +24,36 @@ jobs:
           docker run -d --name release-container \
             -p 5000:5000 \
             -e REPO_URL=https://github.com/${{ github.repository }}.git \
-             mostfarwag/release:3 \
-             
+            mostfarwag/release:3
+
       - name: Wait for API and Script to Complete
+        id: wait-analyzer
         run: |
-          docker logs -f release-container
+          # نستنى الـ container يكمل ونجيب الـ logs
+          docker logs -f release-container > container_logs.txt 2>&1
           docker wait release-container
+          # نجيب الـ NEW_TAG من الملف
+          docker cp release-container:/app/new_tag.txt ./new_tag.txt || echo "Failed to copy new_tag.txt"
+          NEW_TAG=$(cat ./new_tag.txt 2>/dev/null || echo "No new tag generated")
+          echo "NEW_TAG=$NEW_TAG" >> $GITHUB_OUTPUT
+          echo "Captured NEW_TAG: $NEW_TAG"
+
+      - name: Create and Push Git Tag
+        run: |
+          NEW_TAG="${{ steps.wait-analyzer.outputs.NEW_TAG }}"
+          if [ "$NEW_TAG" != "No new tag generated" ]; then
+            git tag "$NEW_TAG"
+            git push origin "$NEW_TAG" || echo "Error: Failed to push tag"
+          else
+            echo "Skipping tag creation: No valid NEW_TAG generated"
+          fi
 
       - name: Stop Docker Container
         if: always()
         run: |
           docker stop release-container || true
           docker rm release-container || true
+
+      - name: Debug Output
+        run: |
+          echo "Workflow completed. New tag: ${{ steps.wait-analyzer.outputs.NEW_TAG }}"
