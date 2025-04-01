@@ -11,7 +11,7 @@ permissions:
 jobs:
   analyze-release:
     runs-on: ubuntu-latest
-    steps:  # شيلنا الـ container هنا وهنستخدم docker run بدل ما نشغل كل حاجة جوا الـ image
+    steps:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
@@ -22,9 +22,7 @@ jobs:
         env:
           REPO_URL: ${{ github.repositoryUrl }}
         run: |
-          # نشغل الـ image ونخلّيها تكتب الـ NEW_TAG
           docker run --name release-container -e REPO_URL=$REPO_URL mostfarwag/release:3
-          # نجيب الـ NEW_TAG من الـ container
           docker cp release-container:/app/new_tag.txt ./new_tag.txt || echo "Failed to copy new_tag.txt"
           NEW_TAG=$(cat ./new_tag.txt 2>/dev/null || echo "")
           if [ -z "$NEW_TAG" ]; then
