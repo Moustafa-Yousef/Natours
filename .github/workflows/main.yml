@@ -1,6 +1,6 @@
 name: Release Analysis
 
-on:
+on: 
   push:
     branches:
       - main
@@ -19,42 +19,46 @@ jobs:
         with:
           fetch-depth: 0  # جلب تاريخ Git كامل بما فيه الـ tags
 
-      - name: Get Previous and Current Version
-        id: get_version
-        run: |
-          echo "OLD_VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo '0.0.0')" >> $GITHUB_ENV
-          echo "NEW_VERSION=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
-
       - name: Run Docker Image
         run: |
-          docker run --rm --name release-container \
+          echo "🚀 تشغيل الحاوية..."
+          docker run -d --name release-container \
             -p 5000:5000 \
             -e REPO_URL=https://github.com/${{ github.repository }}.git \
-            mostfarwag/release:3 &  # تشغيله في الخلفية دون توقف
+            mostfarwag/release:3
+
+          echo "⏳ انتظار بدء تشغيل الحاوية..."
+          sleep 5  # الانتظار قليلاً لتجنب أخطاء بدء التشغيل
+          
+          # التحقق من أن الحاوية بدأت بنجاح
+          if [ "$(docker ps -q -f name=release-container)" == "" ]; then
+            echo "❌ فشل في تشغيل الحاوية! تحقق من الـ Dockerfile أو الـ Image."
+            docker logs release-container || true
+            exit 1
+          fi
 
       - name: Wait for API and Script to Complete
         run: |
-          sleep 10  # الانتظار حتى يتم تشغيل الـ API
-          docker logs -f release-container &  # عرض اللوجات دون منع التشغيل
-          wait %1  # الانتظار حتى ينتهي الحاوية
-
-      - name: Extract New Tag from Logs
-        run: |
-          NEW_TAG=$(docker logs release-container | grep -oP 'New tag created and pushed: \K.*' || echo "")
-          if [ -z "$NEW_TAG" ]; then
-            echo "❌ لم يتم العثور على تاج جديد، تأكد من تشغيل الكود بشكل صحيح."
+          echo "📢 متابعة لوجات الحاوية..."
+          docker logs -f release-container &
+          CONTAINER_PID=$!
+          
+          # التحقق من أن الحاوية لا تزال تعمل قبل انتظارها
+          if [ "$(docker ps -q -f name=release-container)" == "" ]; then
+            echo "❌ الحاوية توقفت فجأة! عرض اللوجات ثم الإنهاء."
+            docker logs release-container || true
             exit 1
           fi
-          echo "New Tag: $NEW_TAG"
-          echo "NEW_TAG=$NEW_TAG" >> $GITHUB_ENV
 
-      - name: Create and Push Tag
-        run: |
-          git tag $NEW_TAG
-          git push origin $NEW_TAG
+          echo "⏳ انتظار انتهاء العملية داخل الحاوية..."
+          docker wait release-container || true
+          
+          # قتل عملية متابعة اللوجات لتجنب المشاكل
+          kill $CONTAINER_PID || true
 
       - name: Stop Docker Container
         if: always()
         run: |
+          echo "🛑 إيقاف الحاوية..."
           docker stop release-container || true
           docker rm release-container || true
