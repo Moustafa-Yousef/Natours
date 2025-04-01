@@ -29,7 +29,6 @@ jobs:
       - name: Wait for API and Script to Complete
         run: |
           docker logs -f release-container
-          docker wait release-container
           NEW_TAG=$(docker exec release-container cat /app/new_tag.txt)
           echo "New Tag: $NEW_TAG"
           git tag $NEW_TAG
